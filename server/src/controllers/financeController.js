@@ -1,37 +1,36 @@
 const Income = require('../models/Income');
 const Expense = require('../models/Expense');
 const BudgetAllocation = require('../models/BudgetAllocation');
+const User = require('../models/User');
 const { calculatePolicyAllocation } = require('../services/suggestionPolicy');
-const { getUserStore } = require('../services/mockDataStore');
 
 const getFinancialSummary = async (req, res) => {
   try {
-    const tenantId = req.tenantId;
-    const store = getUserStore(req.user?.email || tenantId);
-
-    let dbIncomes = await Income.find({ tenantId });
-    let dbExpenses = await Expense.find({ tenantId });
-
-    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : store.incomes;
-    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : store.expenses;
-
-    // Normalize legacy unscaled amounts (< 1000 => * 100)
-    incomes = incomes.map(inc => ({
-      ...inc.toObject ? inc.toObject() : inc,
-      amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
-    }));
-
-    expenses = expenses.map(exp => ({
-      ...exp.toObject ? exp.toObject() : exp,
-      amount: exp.amount < 1000 ? exp.amount * 100 : exp.amount
-    }));
+    const tenantId = req.tenantId || req.user?.defaultTenant;
+    const incomes = await Income.find({ tenantId });
+    const expenses = await Expense.find({ tenantId });
 
     const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
     const netCashflow = totalIncome - totalExpense;
 
     let budget = await BudgetAllocation.findOne({ tenantId });
-    if (!budget) budget = store.budget;
+
+    if (!budget) {
+      const user = await User.findById(req.user._id);
+      const policyResult = calculatePolicyAllocation(user || { age: 30, ageBand: '30-49', medicalConditions: [] }, totalIncome);
+
+      budget = await BudgetAllocation.create({
+        tenantId,
+        totalIncome,
+        savingsPct: policyResult.savingsPct,
+        loansPct: policyResult.loansPct,
+        familyPct: policyResult.familyPct,
+        dailyExpensesPct: policyResult.dailyExpensesPct,
+        hobbiesPct: policyResult.hobbiesPct,
+        policyApplied: policyResult.policyApplied
+      });
+    }
 
     res.json({
       totalIncome,
@@ -42,47 +41,25 @@ const getFinancialSummary = async (req, res) => {
       budget
     });
   } catch (error) {
-    const store = getUserStore(req.user?.email || req.tenantId);
-    const totalIncome = store.incomes.reduce((acc, curr) => acc + curr.amount, 0);
-    const totalExpense = store.expenses.reduce((acc, curr) => acc + curr.amount, 0);
-    res.json({
-      totalIncome,
-      totalExpense,
-      netCashflow: totalIncome - totalExpense,
-      incomes: store.incomes,
-      expenses: store.expenses,
-      budget: store.budget
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
 const addIncome = async (req, res) => {
   try {
     const { source, amount, frequency, isFixed } = req.body;
-    const store = getUserStore(req.user?.email || req.tenantId);
+    const tenantId = req.tenantId || req.user?.defaultTenant;
 
-    let incomeObj = {
-      _id: 'inc_' + Date.now(),
-      tenantId: req.tenantId,
+    const income = await Income.create({
+      tenantId,
+      userId: req.user._id,
       source,
       amount: Number(amount),
       frequency: frequency || 'monthly',
       isFixed: isFixed !== undefined ? isFixed : true
-    };
+    });
 
-    try {
-      const dbInc = await Income.create({
-        tenantId: req.tenantId,
-        source,
-        amount: Number(amount),
-        frequency: frequency || 'monthly',
-        isFixed: isFixed !== undefined ? isFixed : true
-      });
-      incomeObj = dbInc;
-    } catch (e) {}
-
-    store.incomes.push(incomeObj);
-    res.status(201).json(incomeObj);
+    res.status(201).json(income);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -90,14 +67,8 @@ const addIncome = async (req, res) => {
 
 const deleteIncome = async (req, res) => {
   try {
-    const store = getUserStore(req.user?.email || req.tenantId);
     const { id } = req.params;
-
-    try {
-      await Income.findByIdAndDelete(id);
-    } catch (e) {}
-
-    store.incomes = store.incomes.filter(i => i._id.toString() !== id.toString());
+    await Income.findByIdAndDelete(id);
     res.json({ message: 'Income entry deleted successfully.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -107,28 +78,17 @@ const deleteIncome = async (req, res) => {
 const addExpense = async (req, res) => {
   try {
     const { title, amount, category } = req.body;
-    const store = getUserStore(req.user?.email || req.tenantId);
+    const tenantId = req.tenantId || req.user?.defaultTenant;
 
-    let expObj = {
-      _id: 'exp_' + Date.now(),
-      tenantId: req.tenantId,
+    const expense = await Expense.create({
+      tenantId,
+      userId: req.user._id,
       title,
       amount: Number(amount),
       category: category || 'General'
-    };
+    });
 
-    try {
-      const dbExp = await Expense.create({
-        tenantId: req.tenantId,
-        title,
-        amount: Number(amount),
-        category: category || 'General'
-      });
-      expObj = dbExp;
-    } catch (e) {}
-
-    store.expenses.push(expObj);
-    res.status(201).json(expObj);
+    res.status(201).json(expense);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -136,14 +96,8 @@ const addExpense = async (req, res) => {
 
 const deleteExpense = async (req, res) => {
   try {
-    const store = getUserStore(req.user?.email || req.tenantId);
     const { id } = req.params;
-
-    try {
-      await Expense.findByIdAndDelete(id);
-    } catch (e) {}
-
-    store.expenses = store.expenses.filter(e => e._id.toString() !== id.toString());
+    await Expense.findByIdAndDelete(id);
     res.json({ message: 'Expense entry deleted successfully.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -153,18 +107,23 @@ const deleteExpense = async (req, res) => {
 const updateBudgetAllocation = async (req, res) => {
   try {
     const { savingsPct, loansPct, familyPct, dailyExpensesPct, hobbiesPct } = req.body;
-    const store = getUserStore(req.user?.email || req.tenantId);
+    const tenantId = req.tenantId || req.user?.defaultTenant;
 
-    store.budget = {
-      ...store.budget,
-      savingsPct,
-      loansPct,
-      familyPct,
-      dailyExpensesPct,
-      hobbiesPct
-    };
+    const budget = await BudgetAllocation.findOneAndUpdate(
+      { tenantId },
+      {
+        savingsPct,
+        loansPct,
+        familyPct,
+        dailyExpensesPct,
+        hobbiesPct,
+        isCustomized: true,
+        updatedAt: Date.now()
+      },
+      { upsert: true, new: true }
+    );
 
-    res.json(store.budget);
+    res.json(budget);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

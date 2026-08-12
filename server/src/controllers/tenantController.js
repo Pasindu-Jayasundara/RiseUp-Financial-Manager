@@ -1,21 +1,27 @@
-const { getUserStore } = require('../services/mockDataStore');
+const Tenant = require('../models/Tenant');
 
 const getTenants = async (req, res) => {
-  const store = getUserStore(req.user?.email || req.tenantId);
-  res.json(store.tenants);
+  try {
+    const tenants = await Tenant.find({ $or: [{ owner: req.user._id }, { members: req.user._id }] });
+    res.json(tenants);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 const createTenant = async (req, res) => {
-  const { name, type } = req.body;
-  const store = getUserStore(req.user?.email || req.tenantId);
-
-  const newTenant = {
-    _id: 't_' + Date.now(),
-    name,
-    type: type || 'personal'
-  };
-  store.tenants.push(newTenant);
-  res.status(201).json(newTenant);
+  try {
+    const { name, type } = req.body;
+    const newTenant = await Tenant.create({
+      name,
+      type: type || 'personal',
+      owner: req.user._id,
+      members: [req.user._id]
+    });
+    res.status(201).json(newTenant);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 module.exports = { getTenants, createTenant };

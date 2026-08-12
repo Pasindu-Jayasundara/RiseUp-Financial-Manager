@@ -1,65 +1,73 @@
 const Goal = require('../models/Goal');
 const Roadmap = require('../models/Roadmap');
+const Income = require('../models/Income');
 const { commitMilestoneToBlockchain } = require('../services/blockchainService');
-const { getUserStore } = require('../services/mockDataStore');
 
 const getGoalAndRoadmap = async (req, res) => {
   try {
-    const store = getUserStore(req.user?.email || req.tenantId);
-    const goal = await Goal.findOne({ tenantId: req.tenantId });
-    const roadmaps = await Roadmap.find({ tenantId: req.tenantId });
-    if (goal && roadmaps && roadmaps.length > 0) return res.json({ goal, roadmaps });
-    res.json({ goal: store.goal, roadmaps: store.roadmaps });
+    const tenantId = req.tenantId || req.user?.defaultTenant;
+    let goal = await Goal.findOne({ tenantId });
+    let roadmaps = await Roadmap.find({ tenantId });
+
+    if (!goal) {
+      goal = {
+        tenantId,
+        targetIncome: 0,
+        declaredSkills: ['Project Management', 'Communication'],
+        matchedJobs: []
+      };
+    }
+
+    if (!roadmaps || roadmaps.length === 0) {
+      roadmaps = [];
+    }
+
+    res.json({ goal, roadmaps });
   } catch (error) {
-    const store = getUserStore(req.user?.email || req.tenantId);
-    res.json({ goal: store.goal, roadmaps: store.roadmaps });
+    res.status(500).json({ message: error.message });
   }
 };
 
 const updateGoalSkills = async (req, res) => {
   try {
     const { targetIncome, declaredSkills } = req.body;
-    const store = getUserStore(req.user?.email || req.tenantId);
-    
-    if (targetIncome !== undefined && targetIncome !== null) {
-      const newTarget = Number(targetIncome);
-      store.goal.targetIncome = newTarget;
+    const tenantId = req.tenantId || req.user?.defaultTenant;
 
-      const totalIncome = store.incomes.reduce((acc, inc) => acc + inc.amount, 0);
-      const completionPct = newTarget > 0 ? Math.min(100, Math.round((totalIncome / newTarget) * 100)) : 0;
+    let goal = await Goal.findOne({ tenantId });
+    const targetVal = targetIncome !== undefined ? Number(targetIncome) : (goal?.targetIncome || 0);
 
-      store.notifications.dailyMotivation.completionPct = completionPct;
-      store.notifications.dailyMotivation.message = 
-        `Awesome work ${store.user.name}! You are ${completionPct}% closer to your Rs. ${newTarget.toLocaleString()} monthly target goal. Complete Month 2 Python module!`;
-
-      store.goal.matchedJobs = [
-        {
-          role: 'Lead Financial Strategist',
-          industry: 'FinTech',
-          estimatedSalary: Math.round(newTarget * 1.05),
-          matchPercentage: 75,
-          gapSkills: ['Risk Management', 'Python']
-        },
-        {
-          role: 'Senior Analytics Manager',
-          industry: 'Enterprise Software',
-          estimatedSalary: Math.round(newTarget * 1.10),
-          matchPercentage: 80,
-          gapSkills: ['SQL', 'Executive Reporting']
-        }
-      ];
-
-      if (store.roadmaps && store.roadmaps.length >= 2) {
-        store.roadmaps[0].targetIncomeIncrease = Math.round(newTarget * 0.08);
-        store.roadmaps[1].targetIncomeIncrease = Math.round(newTarget * 0.15);
+    const matchedJobs = targetVal > 0 ? [
+      {
+        role: 'Lead Financial Strategist',
+        industry: 'FinTech',
+        estimatedSalary: Math.round(targetVal * 1.05),
+        matchPercentage: 75,
+        gapSkills: ['Risk Management', 'Python']
+      },
+      {
+        role: 'Senior Analytics Manager',
+        industry: 'Enterprise Software',
+        estimatedSalary: Math.round(targetVal * 1.10),
+        matchPercentage: 80,
+        gapSkills: ['SQL', 'Executive Reporting']
       }
-    }
+    ] : [];
 
-    if (declaredSkills) {
-      store.goal.declaredSkills = declaredSkills;
-    }
+    const updatedSkills = declaredSkills || goal?.declaredSkills || [];
 
-    res.json(store.goal);
+    goal = await Goal.findOneAndUpdate(
+      { tenantId },
+      {
+        tenantId,
+        userId: req.user._id,
+        targetIncome: targetVal,
+        declaredSkills: updatedSkills,
+        matchedJobs
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json(goal);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -68,12 +76,10 @@ const updateGoalSkills = async (req, res) => {
 const toggleMilestoneTask = async (req, res) => {
   try {
     const { roadmapId, taskId } = req.params;
-    const store = getUserStore(req.user?.email || req.tenantId);
-
-    const roadmap = store.roadmaps.find(r => r._id.toString() === roadmapId);
+    const roadmap = await Roadmap.findById(roadmapId);
     if (!roadmap) return res.status(404).json({ message: 'Roadmap not found' });
 
-    const task = roadmap.tasks.find(t => t._id.toString() === taskId);
+    const task = roadmap.tasks.id(taskId);
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
     task.completed = !task.completed;
@@ -91,17 +97,9 @@ const toggleMilestoneTask = async (req, res) => {
 
       const chainReceipt = await commitMilestoneToBlockchain(recordData);
       roadmap.blockchainTxHash = chainReceipt.txHash;
-
-      store.blockchainRecords.push({
-        recordType: 'milestone_completion',
-        sourceId: roadmap._id,
-        dataHash: chainReceipt.dataHash,
-        txHash: chainReceipt.txHash,
-        blockNumber: chainReceipt.blockNumber,
-        timestamp: new Date()
-      });
     }
 
+    await roadmap.save();
     res.json(roadmap);
   } catch (error) {
     res.status(500).json({ message: error.message });

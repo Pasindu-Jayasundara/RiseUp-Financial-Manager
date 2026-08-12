@@ -1,42 +1,25 @@
 const Income = require('../models/Income');
 const Expense = require('../models/Expense');
+const Goal = require('../models/Goal');
+const BudgetAllocation = require('../models/BudgetAllocation');
+const User = require('../models/User');
 const { generate12MonthForecast } = require('../services/forecastingEngine');
-const { getUserStore } = require('../services/mockDataStore');
 const { generateAIAnalysis } = require('../services/aiAdvisorService');
 
 const getAnalyticsAndForecast = async (req, res) => {
   try {
-    const tenantId = req.tenantId;
-    const store = getUserStore(req.user?.email || tenantId);
-
-    let dbIncomes = [];
-    let dbExpenses = [];
-
-    try {
-      dbIncomes = await Income.find({ tenantId });
-      dbExpenses = await Expense.find({ tenantId });
-    } catch (e) {}
-
-    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : store.incomes;
-    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : store.expenses;
-
-    // Normalize legacy unscaled amounts (< 1000 => * 100)
-    incomes = incomes.map(inc => ({
-      ...inc.toObject ? inc.toObject() : inc,
-      amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
-    }));
-
-    expenses = expenses.map(exp => ({
-      ...exp.toObject ? exp.toObject() : exp,
-      amount: exp.amount < 1000 ? exp.amount * 100 : exp.amount
-    }));
+    const tenantId = req.tenantId || req.user?.defaultTenant;
+    const incomes = await Income.find({ tenantId });
+    const expenses = await Expense.find({ tenantId });
+    const goal = await Goal.findOne({ tenantId });
+    const budget = await BudgetAllocation.findOne({ tenantId });
 
     const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
     const categoryMap = {};
     expenses.forEach(exp => {
-      const cat = exp.category || 'Other';
+      const cat = exp.category || 'General';
       categoryMap[cat] = (categoryMap[cat] || 0) + exp.amount;
     });
 
@@ -49,10 +32,10 @@ const getAnalyticsAndForecast = async (req, res) => {
     const forecast = generate12MonthForecast({
       currentMonthlyIncome: totalIncome,
       currentMonthlyExpense: totalExpense,
-      roadmapCompletionRate: 0.75,
-      savingsRate: (store.budget?.savingsPct || 15) / 100,
-      skillCount: store.goal?.declaredSkills?.length || 3,
-      targetIncomeGoal: store.goal?.targetIncome || 850000
+      roadmapCompletionRate: 0.5,
+      savingsRate: (budget?.savingsPct || 20) / 100,
+      skillCount: goal?.declaredSkills?.length || 2,
+      targetIncomeGoal: goal?.targetIncome || totalIncome * 1.5
     });
 
     res.json({
@@ -68,36 +51,19 @@ const getAnalyticsAndForecast = async (req, res) => {
 
 const getAIAnalysisReport = async (req, res) => {
   try {
-    const tenantId = req.tenantId;
-    const store = getUserStore(req.user?.email || tenantId);
-
-    let dbIncomes = [];
-    let dbExpenses = [];
-
-    try {
-      dbIncomes = await Income.find({ tenantId });
-      dbExpenses = await Expense.find({ tenantId });
-    } catch (e) {}
-
-    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : store.incomes;
-    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : store.expenses;
-
-    incomes = incomes.map(inc => ({
-      ...inc.toObject ? inc.toObject() : inc,
-      amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
-    }));
-
-    expenses = expenses.map(exp => ({
-      ...exp.toObject ? exp.toObject() : exp,
-      amount: exp.amount < 1000 ? exp.amount * 100 : exp.amount
-    }));
+    const tenantId = req.tenantId || req.user?.defaultTenant;
+    const user = await User.findById(req.user._id).select('-password');
+    const incomes = await Income.find({ tenantId });
+    const expenses = await Expense.find({ tenantId });
+    const goal = await Goal.findOne({ tenantId });
+    const budget = await BudgetAllocation.findOne({ tenantId });
 
     const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
     const categoryMap = {};
     expenses.forEach(exp => {
-      const cat = exp.category || 'Other';
+      const cat = exp.category || 'General';
       categoryMap[cat] = (categoryMap[cat] || 0) + exp.amount;
     });
 
@@ -108,14 +74,14 @@ const getAIAnalysisReport = async (req, res) => {
     }));
 
     const userData = {
-      user: store.user,
+      user: user || req.user,
       summary: {
         totalIncome,
         totalExpense,
         netCashflow: totalIncome - totalExpense
       },
-      goal: store.goal,
-      budget: store.budget,
+      goal: goal || { targetIncome: 0, declaredSkills: [] },
+      budget: budget || { savingsPct: 20, dailyExpensesPct: 35 },
       spendBreakdown
     };
 

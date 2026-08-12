@@ -7,8 +7,8 @@ const TenantSchema = new mongoose.Schema({
     enum: ['personal', 'household', 'business'], 
     default: 'personal' 
   },
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  owner: { type: mongoose.Schema.Types.Mixed },
+  members: [{ type: mongoose.Schema.Types.Mixed }],
   createdAt: { type: Date, default: Date.now }
 });
 

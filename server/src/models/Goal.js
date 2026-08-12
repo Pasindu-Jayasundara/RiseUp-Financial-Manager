@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
 const GoalSchema = new mongoose.Schema({
-  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  title: { type: String, required: true },
-  targetIncome: { type: Number, required: true },
+  tenantId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
+  userId: { type: mongoose.Schema.Types.Mixed, required: true },
+  title: { type: String, default: 'Career Target Goal' },
+  targetIncome: { type: Number, required: true, default: 0 },
   currentIncome: { type: Number, default: 0 },
   targetMonths: { type: Number, default: 12 },
   declaredSkills: [{ type: String }],

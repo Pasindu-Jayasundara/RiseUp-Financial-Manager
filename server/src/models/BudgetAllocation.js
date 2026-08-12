@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const BudgetAllocationSchema = new mongoose.Schema({
-  tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
+  tenantId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
   totalIncome: { type: Number, default: 0 },
   savingsPct: { type: Number, default: 20 },
   loansPct: { type: Number, default: 15 },
