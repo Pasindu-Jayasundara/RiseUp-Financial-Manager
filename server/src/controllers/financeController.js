@@ -2,18 +2,20 @@ const Income = require('../models/Income');
 const Expense = require('../models/Expense');
 const BudgetAllocation = require('../models/BudgetAllocation');
 const { calculatePolicyAllocation } = require('../services/suggestionPolicy');
-const { mockData } = require('../services/mockDataStore');
+const { getUserStore } = require('../services/mockDataStore');
 
 const getFinancialSummary = async (req, res) => {
   try {
     const tenantId = req.tenantId;
+    const store = getUserStore(req.user?.email || tenantId);
+
     let dbIncomes = await Income.find({ tenantId });
     let dbExpenses = await Expense.find({ tenantId });
 
-    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : mockData.incomes;
-    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : mockData.expenses;
+    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : store.incomes;
+    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : store.expenses;
 
-    // Normalize any legacy unscaled amounts (< 1000 => * 100 for LKR currency consistency)
+    // Normalize legacy unscaled amounts (< 1000 => * 100)
     incomes = incomes.map(inc => ({
       ...inc.toObject ? inc.toObject() : inc,
       amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
@@ -29,7 +31,7 @@ const getFinancialSummary = async (req, res) => {
     const netCashflow = totalIncome - totalExpense;
 
     let budget = await BudgetAllocation.findOne({ tenantId });
-    if (!budget) budget = mockData.budget;
+    if (!budget) budget = store.budget;
 
     res.json({
       totalIncome,
@@ -40,15 +42,16 @@ const getFinancialSummary = async (req, res) => {
       budget
     });
   } catch (error) {
-    const totalIncome = mockData.incomes.reduce((acc, curr) => acc + curr.amount, 0);
-    const totalExpense = mockData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const store = getUserStore(req.user?.email || req.tenantId);
+    const totalIncome = store.incomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalExpense = store.expenses.reduce((acc, curr) => acc + curr.amount, 0);
     res.json({
       totalIncome,
       totalExpense,
       netCashflow: totalIncome - totalExpense,
-      incomes: mockData.incomes,
-      expenses: mockData.expenses,
-      budget: mockData.budget
+      incomes: store.incomes,
+      expenses: store.expenses,
+      budget: store.budget
     });
   }
 };
@@ -56,90 +59,122 @@ const getFinancialSummary = async (req, res) => {
 const addIncome = async (req, res) => {
   try {
     const { source, amount, frequency, isFixed } = req.body;
-    const income = await Income.create({
+    const store = getUserStore(req.user?.email || req.tenantId);
+
+    let incomeObj = {
+      _id: 'inc_' + Date.now(),
       tenantId: req.tenantId,
-      userId: req.user ? req.user._id : 'user_alex_1',
       source,
       amount: Number(amount),
       frequency: frequency || 'monthly',
       isFixed: isFixed !== undefined ? isFixed : true
-    });
-    res.status(201).json(income);
-  } catch (error) {
-    const newInc = {
-      _id: 'inc_' + Date.now(),
-      tenantId: req.tenantId,
-      source: req.body.source,
-      amount: Number(req.body.amount),
-      isFixed: req.body.isFixed !== undefined ? req.body.isFixed : true
     };
-    mockData.incomes.push(newInc);
-    res.status(201).json(newInc);
+
+    try {
+      const dbInc = await Income.create({
+        tenantId: req.tenantId,
+        source,
+        amount: Number(amount),
+        frequency: frequency || 'monthly',
+        isFixed: isFixed !== undefined ? isFixed : true
+      });
+      incomeObj = dbInc;
+    } catch (e) {}
+
+    store.incomes.push(incomeObj);
+    res.status(201).json(incomeObj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
 const deleteIncome = async (req, res) => {
   try {
-    await Income.findOneAndDelete({ _id: req.params.id });
-    mockData.incomes = mockData.incomes.filter(i => i._id !== req.params.id);
-    res.json({ message: 'Income deleted' });
+    const store = getUserStore(req.user?.email || req.tenantId);
+    const { id } = req.params;
+
+    try {
+      await Income.findByIdAndDelete(id);
+    } catch (e) {}
+
+    store.incomes = store.incomes.filter(i => i._id.toString() !== id.toString());
+    res.json({ message: 'Income entry deleted successfully.' });
   } catch (error) {
-    mockData.incomes = mockData.incomes.filter(i => i._id !== req.params.id);
-    res.json({ message: 'Income deleted' });
+    res.status(500).json({ message: error.message });
   }
 };
 
 const addExpense = async (req, res) => {
   try {
     const { title, amount, category } = req.body;
-    const expense = await Expense.create({
-      tenantId: req.tenantId,
-      userId: req.user ? req.user._id : 'user_alex_1',
-      title,
-      amount: Number(amount),
-      category: category || 'Food & Dining'
-    });
-    res.status(201).json(expense);
-  } catch (error) {
-    const newExp = {
+    const store = getUserStore(req.user?.email || req.tenantId);
+
+    let expObj = {
       _id: 'exp_' + Date.now(),
       tenantId: req.tenantId,
-      title: req.body.title,
-      amount: Number(req.body.amount),
-      category: req.body.category || 'Food & Dining'
+      title,
+      amount: Number(amount),
+      category: category || 'General'
     };
-    mockData.expenses.push(newExp);
-    res.status(201).json(newExp);
+
+    try {
+      const dbExp = await Expense.create({
+        tenantId: req.tenantId,
+        title,
+        amount: Number(amount),
+        category: category || 'General'
+      });
+      expObj = dbExp;
+    } catch (e) {}
+
+    store.expenses.push(expObj);
+    res.status(201).json(expObj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
 const deleteExpense = async (req, res) => {
   try {
-    await Expense.findOneAndDelete({ _id: req.params.id });
-    mockData.expenses = mockData.expenses.filter(e => e._id !== req.params.id);
-    res.json({ message: 'Expense deleted' });
+    const store = getUserStore(req.user?.email || req.tenantId);
+    const { id } = req.params;
+
+    try {
+      await Expense.findByIdAndDelete(id);
+    } catch (e) {}
+
+    store.expenses = store.expenses.filter(e => e._id.toString() !== id.toString());
+    res.json({ message: 'Expense entry deleted successfully.' });
   } catch (error) {
-    mockData.expenses = mockData.expenses.filter(e => e._id !== req.params.id);
-    res.json({ message: 'Expense deleted' });
+    res.status(500).json({ message: error.message });
   }
 };
 
 const updateBudgetAllocation = async (req, res) => {
   try {
     const { savingsPct, loansPct, familyPct, dailyExpensesPct, hobbiesPct } = req.body;
-    const budget = {
-      savingsPct: Number(savingsPct),
-      loansPct: Number(loansPct),
-      familyPct: Number(familyPct),
-      dailyExpensesPct: Number(dailyExpensesPct),
-      hobbiesPct: Number(hobbiesPct),
-      policyApplied: { notes: 'User customized budget allocation' }
+    const store = getUserStore(req.user?.email || req.tenantId);
+
+    store.budget = {
+      ...store.budget,
+      savingsPct,
+      loansPct,
+      familyPct,
+      dailyExpensesPct,
+      hobbiesPct
     };
-    mockData.budget = budget;
-    res.json({ budget, warnings: [] });
+
+    res.json(store.budget);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { getFinancialSummary, addIncome, deleteIncome, addExpense, deleteExpense, updateBudgetAllocation };
+module.exports = {
+  getFinancialSummary,
+  addIncome,
+  deleteIncome,
+  addExpense,
+  deleteExpense,
+  updateBudgetAllocation
+};

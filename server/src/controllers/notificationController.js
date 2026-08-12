@@ -1,7 +1,8 @@
-const { mockData } = require('../services/mockDataStore');
+const { getUserStore } = require('../services/mockDataStore');
 
 const getNotifications = async (req, res) => {
-  res.json(mockData.notifications);
+  const store = getUserStore(req.user?.email || req.tenantId);
+  res.json(store.notifications);
 };
 
 module.exports = { getNotifications };

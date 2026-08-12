@@ -1,12 +1,15 @@
-const { mockData } = require('../services/mockDataStore');
+const { getUserStore } = require('../services/mockDataStore');
 
 const getLedgerRecords = async (req, res) => {
-  res.json(mockData.blockchainRecords);
+  const store = getUserStore(req.user?.email || req.tenantId);
+  res.json(store.blockchainRecords);
 };
 
 const verifyHash = async (req, res) => {
   const { txHash } = req.body;
-  const found = mockData.blockchainRecords.find(r => r.txHash === txHash);
+  const store = getUserStore(req.user?.email || req.tenantId);
+  const found = store.blockchainRecords.find(r => r.txHash === txHash);
+
   if (found) {
     return res.json({
       valid: true,

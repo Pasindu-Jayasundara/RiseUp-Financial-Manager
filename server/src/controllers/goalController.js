@@ -1,38 +1,38 @@
 const Goal = require('../models/Goal');
 const Roadmap = require('../models/Roadmap');
 const { commitMilestoneToBlockchain } = require('../services/blockchainService');
-const { mockData } = require('../services/mockDataStore');
+const { getUserStore } = require('../services/mockDataStore');
 
 const getGoalAndRoadmap = async (req, res) => {
   try {
+    const store = getUserStore(req.user?.email || req.tenantId);
     const goal = await Goal.findOne({ tenantId: req.tenantId });
     const roadmaps = await Roadmap.find({ tenantId: req.tenantId });
     if (goal && roadmaps && roadmaps.length > 0) return res.json({ goal, roadmaps });
-    res.json({ goal: mockData.goal, roadmaps: mockData.roadmaps });
+    res.json({ goal: store.goal, roadmaps: store.roadmaps });
   } catch (error) {
-    res.json({ goal: mockData.goal, roadmaps: mockData.roadmaps });
+    const store = getUserStore(req.user?.email || req.tenantId);
+    res.json({ goal: store.goal, roadmaps: store.roadmaps });
   }
 };
 
 const updateGoalSkills = async (req, res) => {
   try {
     const { targetIncome, declaredSkills } = req.body;
+    const store = getUserStore(req.user?.email || req.tenantId);
     
     if (targetIncome !== undefined && targetIncome !== null) {
       const newTarget = Number(targetIncome);
-      mockData.goal.targetIncome = newTarget;
+      store.goal.targetIncome = newTarget;
 
-      // Calculate current income towards goal
-      const totalIncome = mockData.incomes.reduce((acc, inc) => acc + inc.amount, 0);
+      const totalIncome = store.incomes.reduce((acc, inc) => acc + inc.amount, 0);
       const completionPct = newTarget > 0 ? Math.min(100, Math.round((totalIncome / newTarget) * 100)) : 0;
 
-      // Dynamically update daily motivation banner message on Dashboard
-      mockData.notifications.dailyMotivation.completionPct = completionPct;
-      mockData.notifications.dailyMotivation.message = 
-        `Awesome work! You are ${completionPct}% closer to your Rs. ${newTarget.toLocaleString()} monthly target goal. Complete Month 2 Python module!`;
+      store.notifications.dailyMotivation.completionPct = completionPct;
+      store.notifications.dailyMotivation.message = 
+        `Awesome work ${store.user.name}! You are ${completionPct}% closer to your Rs. ${newTarget.toLocaleString()} monthly target goal. Complete Month 2 Python module!`;
 
-      // Dynamically scale matched jobs based on new target goal
-      mockData.goal.matchedJobs = [
+      store.goal.matchedJobs = [
         {
           role: 'Lead Financial Strategist',
           industry: 'FinTech',
@@ -49,51 +49,67 @@ const updateGoalSkills = async (req, res) => {
         }
       ];
 
-      // Dynamically scale milestone target income increases
-      if (mockData.roadmaps && mockData.roadmaps.length >= 2) {
-        mockData.roadmaps[0].targetIncomeIncrease = Math.round(newTarget * 0.08);
-        mockData.roadmaps[1].targetIncomeIncrease = Math.round(newTarget * 0.15);
+      if (store.roadmaps && store.roadmaps.length >= 2) {
+        store.roadmaps[0].targetIncomeIncrease = Math.round(newTarget * 0.08);
+        store.roadmaps[1].targetIncomeIncrease = Math.round(newTarget * 0.15);
       }
     }
 
     if (declaredSkills) {
-      mockData.goal.declaredSkills = declaredSkills;
+      store.goal.declaredSkills = declaredSkills;
     }
 
-    res.json({ goal: mockData.goal, roadmaps: mockData.roadmaps });
+    res.json(store.goal);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const toggleTaskCompletion = async (req, res) => {
+const toggleMilestoneTask = async (req, res) => {
   try {
     const { roadmapId, taskId } = req.params;
-    let foundTask = null;
-    let targetRm = null;
+    const store = getUserStore(req.user?.email || req.tenantId);
 
-    mockData.roadmaps.forEach(rm => {
-      if (rm._id === roadmapId) {
-        targetRm = rm;
-        rm.tasks.forEach(t => {
-          if (t._id === taskId) {
-            t.completed = !t.completed;
-            foundTask = t;
-          }
-        });
-        const allCompleted = rm.tasks.every(t => t.completed);
-        rm.isCompleted = allCompleted;
-        if (allCompleted && !rm.blockchainVerified) {
-          rm.blockchainVerified = true;
-          rm.blockchainTxHash = '0x' + Math.random().toString(16).substring(2) + Math.random().toString(16).substring(2);
-        }
-      }
-    });
+    const roadmap = store.roadmaps.find(r => r._id.toString() === roadmapId);
+    if (!roadmap) return res.status(404).json({ message: 'Roadmap not found' });
 
-    res.json({ roadmap: targetRm });
+    const task = roadmap.tasks.find(t => t._id.toString() === taskId);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    task.completed = !task.completed;
+
+    const allCompleted = roadmap.tasks.every(t => t.completed);
+    if (allCompleted && !roadmap.isCompleted) {
+      roadmap.isCompleted = true;
+      roadmap.blockchainVerified = true;
+
+      const recordData = {
+        roadmapId: roadmap._id,
+        milestoneTitle: roadmap.milestoneTitle,
+        completedAt: new Date().toISOString()
+      };
+
+      const chainReceipt = await commitMilestoneToBlockchain(recordData);
+      roadmap.blockchainTxHash = chainReceipt.txHash;
+
+      store.blockchainRecords.push({
+        recordType: 'milestone_completion',
+        sourceId: roadmap._id,
+        dataHash: chainReceipt.dataHash,
+        txHash: chainReceipt.txHash,
+        blockNumber: chainReceipt.blockNumber,
+        timestamp: new Date()
+      });
+    }
+
+    res.json(roadmap);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { getGoalAndRoadmap, updateGoalSkills, toggleTaskCompletion };
+module.exports = {
+  getGoalAndRoadmap,
+  updateGoalSkills,
+  toggleMilestoneTask
+};

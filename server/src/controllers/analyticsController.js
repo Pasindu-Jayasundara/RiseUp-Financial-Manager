@@ -1,26 +1,26 @@
 const Income = require('../models/Income');
 const Expense = require('../models/Expense');
 const { generate12MonthForecast } = require('../services/forecastingEngine');
-const { mockData } = require('../services/mockDataStore');
+const { getUserStore } = require('../services/mockDataStore');
 const { generateAIAnalysis } = require('../services/aiAdvisorService');
 
 const getAnalyticsAndForecast = async (req, res) => {
   try {
     const tenantId = req.tenantId;
+    const store = getUserStore(req.user?.email || tenantId);
+
     let dbIncomes = [];
     let dbExpenses = [];
 
     try {
       dbIncomes = await Income.find({ tenantId });
       dbExpenses = await Expense.find({ tenantId });
-    } catch (e) {
-      // DB query error, fallback to mockData
-    }
+    } catch (e) {}
 
-    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : mockData.incomes;
-    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : mockData.expenses;
+    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : store.incomes;
+    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : store.expenses;
 
-    // Normalize any legacy unscaled amounts (< 1000 => * 100 for LKR currency consistency)
+    // Normalize legacy unscaled amounts (< 1000 => * 100)
     incomes = incomes.map(inc => ({
       ...inc.toObject ? inc.toObject() : inc,
       amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
@@ -50,22 +50,15 @@ const getAnalyticsAndForecast = async (req, res) => {
       currentMonthlyIncome: totalIncome,
       currentMonthlyExpense: totalExpense,
       roadmapCompletionRate: 0.75,
-      savingsRate: (mockData.budget?.savingsPct || 15) / 100,
-      skillCount: mockData.goal?.declaredSkills?.length || 3,
-      targetIncomeGoal: mockData.goal?.targetIncome || 850000
+      savingsRate: (store.budget?.savingsPct || 15) / 100,
+      skillCount: store.goal?.declaredSkills?.length || 3,
+      targetIncomeGoal: store.goal?.targetIncome || 850000
     });
 
     res.json({
       totalIncome,
       totalExpense,
-      netSavings: totalIncome - totalExpense,
-      spendBreakdown: spendBreakdown.length > 0 ? spendBreakdown : [
-        { category: 'Housing', amount: 180000, percentage: 53 },
-        { category: 'Healthcare', amount: 45000, percentage: 13 },
-        { category: 'Food & Dining', amount: 65000, percentage: 19 },
-        { category: 'Transport', amount: 40000, percentage: 12 },
-        { category: 'Hobbies & Leisure', amount: 12000, percentage: 3 }
-      ],
+      spendBreakdown,
       forecast
     });
   } catch (error) {
@@ -76,18 +69,18 @@ const getAnalyticsAndForecast = async (req, res) => {
 const getAIAnalysisReport = async (req, res) => {
   try {
     const tenantId = req.tenantId;
+    const store = getUserStore(req.user?.email || tenantId);
+
     let dbIncomes = [];
     let dbExpenses = [];
 
     try {
       dbIncomes = await Income.find({ tenantId });
       dbExpenses = await Expense.find({ tenantId });
-    } catch (e) {
-      // DB query error, fallback to mockData
-    }
+    } catch (e) {}
 
-    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : mockData.incomes;
-    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : mockData.expenses;
+    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : store.incomes;
+    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : store.expenses;
 
     incomes = incomes.map(inc => ({
       ...inc.toObject ? inc.toObject() : inc,
@@ -101,7 +94,6 @@ const getAIAnalysisReport = async (req, res) => {
 
     const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
-    const netSavings = totalIncome - totalExpense;
 
     const categoryMap = {};
     expenses.forEach(exp => {
@@ -115,20 +107,26 @@ const getAIAnalysisReport = async (req, res) => {
       percentage: totalExpense > 0 ? Math.round((categoryMap[cat] / totalExpense) * 100) : 0
     }));
 
-    const aiAnalysis = await generateAIAnalysis({
-      totalIncome,
-      totalExpense,
-      netSavings,
-      targetIncomeGoal: mockData.goal?.targetIncome || 850000,
-      declaredSkills: mockData.goal?.declaredSkills || [],
-      user: mockData.user || {},
+    const userData = {
+      user: store.user,
+      summary: {
+        totalIncome,
+        totalExpense,
+        netCashflow: totalIncome - totalExpense
+      },
+      goal: store.goal,
+      budget: store.budget,
       spendBreakdown
-    });
+    };
 
-    res.json(aiAnalysis);
+    const aiReport = await generateAIAnalysis(userData);
+    res.json(aiReport);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { getAnalyticsAndForecast, getAIAnalysisReport };
+module.exports = {
+  getAnalyticsAndForecast,
+  getAIAnalysisReport
+};
