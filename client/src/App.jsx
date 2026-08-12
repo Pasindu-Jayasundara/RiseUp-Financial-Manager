@@ -16,21 +16,9 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [user, setUser] = useState({
-    _id: 'user_alex_1',
-    name: 'Alex Rivera',
-    email: 'alex@riseup.io',
-    age: 42,
-    ageBand: '30-49',
-    medicalConditions: ['chronic_condition_high_cost'],
-    isFirstLogin: false
-  });
-
-  const [tenants, setTenants] = useState([
-    { _id: 'tenant_personal_1', name: 'Personal Workspace', type: 'personal' },
-    { _id: 'tenant_household_2', name: 'Rivera Household', type: 'household' }
-  ]);
-  const [activeTenantId, setActiveTenantId] = useState('tenant_personal_1');
+  const [user, setUser] = useState(null);
+  const [tenants, setTenants] = useState([]);
+  const [activeTenantId, setActiveTenantId] = useState('');
 
   // App Data States
   const [financeData, setFinanceData] = useState(null);
@@ -50,7 +38,7 @@ export default function App() {
       ...(options.headers || {})
     };
 
-    const ports = ['', 'http://localhost:5000', 'http://localhost:5001', 'http://localhost:5002'];
+    const ports = ['', 'http://localhost:5004', 'http://localhost:5000', 'http://localhost:5001'];
 
     for (const prefix of ports) {
       try {
@@ -113,6 +101,9 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('riseup_token');
     setIsAuthenticated(false);
+    setUser(null);
+    setFinanceData(null);
+    setGoalData(null);
   };
 
   const handleCompleteOnboarding = async (onboardingData) => {

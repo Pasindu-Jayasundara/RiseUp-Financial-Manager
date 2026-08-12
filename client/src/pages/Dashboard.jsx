@@ -1,12 +1,12 @@
 import React from 'react';
-import { Wallet, TrendingUp, Target, ShieldCheck, HeartPulse, Sparkles, ArrowUpRight, CheckCircle2, User, Award } from 'lucide-react';
+import { Wallet, TrendingUp, Target, ShieldCheck, HeartPulse, Sparkles, ArrowUpRight, User } from 'lucide-react';
 
 export default function Dashboard({ user, financeData, goalData, analyticsData, notifications, setActiveTab }) {
-  const summary = financeData || { totalIncome: 600000, totalExpense: 342000, netCashflow: 258000 };
+  const summary = financeData || { totalIncome: 0, totalExpense: 0, netCashflow: 0 };
   const dailyMotivation = notifications?.dailyMotivation || {
-    completionPct: 35,
-    message: "You are 35% closer to your monthly target goal. Complete Month 2 Python module!",
-    suggestedNextAction: "Complete your Python for Finance module to trigger your next milestone validation."
+    completionPct: 0,
+    message: user?.name ? `Welcome ${user.name}! Complete your profile setup to calculate your target goal.` : "Welcome! Please set up your financial profile.",
+    suggestedNextAction: "Add your monthly income streams and career target."
   };
 
   const budget = summary.budget || {
@@ -17,11 +17,11 @@ export default function Dashboard({ user, financeData, goalData, analyticsData, 
     hobbiesPct: 10
   };
 
-  const userName = user?.name || 'Alex Rivera';
-  const userAge = user?.age || 42;
+  const userName = user?.name || user?.email?.split('@')[0] || 'User';
+  const userAge = user?.age || 30;
   const userAgeBand = user?.ageBand || '30-49';
   const hasMedicalRisk = user?.medicalConditions && user.medicalConditions.length > 0 && !user.medicalConditions.includes('none');
-  const targetIncome = goalData?.goal?.targetIncome || 850000;
+  const targetIncome = goalData?.goal?.targetIncome || 0;
 
   return (
     <div>
@@ -40,14 +40,14 @@ export default function Dashboard({ user, financeData, goalData, analyticsData, 
             fontWeight: 800,
             fontSize: '1.1rem'
           }}>
-            {userName[0]}
+            {userName ? userName[0].toUpperCase() : 'U'}
           </div>
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
               Welcome back, {userName}!
             </div>
             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-              {user?.email || 'alex@riseup.io'} &bull; Personal Workspace Active
+              {user?.email || 'Authenticated User'} &bull; Personal Workspace
             </div>
           </div>
         </div>
