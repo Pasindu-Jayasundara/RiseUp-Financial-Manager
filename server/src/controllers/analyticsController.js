@@ -1,15 +1,43 @@
+const Income = require('../models/Income');
+const Expense = require('../models/Expense');
 const { generate12MonthForecast } = require('../services/forecastingEngine');
 const { mockData } = require('../services/mockDataStore');
 const { generateAIAnalysis } = require('../services/aiAdvisorService');
 
 const getAnalyticsAndForecast = async (req, res) => {
   try {
-    const totalIncome = mockData.incomes.reduce((acc, curr) => acc + curr.amount, 0);
-    const totalExpense = mockData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const tenantId = req.tenantId;
+    let dbIncomes = [];
+    let dbExpenses = [];
+
+    try {
+      dbIncomes = await Income.find({ tenantId });
+      dbExpenses = await Expense.find({ tenantId });
+    } catch (e) {
+      // DB query error, fallback to mockData
+    }
+
+    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : mockData.incomes;
+    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : mockData.expenses;
+
+    // Normalize any legacy unscaled amounts (< 1000 => * 100 for LKR currency consistency)
+    incomes = incomes.map(inc => ({
+      ...inc.toObject ? inc.toObject() : inc,
+      amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
+    }));
+
+    expenses = expenses.map(exp => ({
+      ...exp.toObject ? exp.toObject() : exp,
+      amount: exp.amount < 1000 ? exp.amount * 100 : exp.amount
+    }));
+
+    const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
     const categoryMap = {};
-    mockData.expenses.forEach(exp => {
-      categoryMap[exp.category] = (categoryMap[exp.category] || 0) + exp.amount;
+    expenses.forEach(exp => {
+      const cat = exp.category || 'Other';
+      categoryMap[cat] = (categoryMap[cat] || 0) + exp.amount;
     });
 
     const spendBreakdown = Object.keys(categoryMap).map(cat => ({
@@ -47,13 +75,38 @@ const getAnalyticsAndForecast = async (req, res) => {
 
 const getAIAnalysisReport = async (req, res) => {
   try {
-    const totalIncome = mockData.incomes.reduce((acc, curr) => acc + curr.amount, 0);
-    const totalExpense = mockData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const tenantId = req.tenantId;
+    let dbIncomes = [];
+    let dbExpenses = [];
+
+    try {
+      dbIncomes = await Income.find({ tenantId });
+      dbExpenses = await Expense.find({ tenantId });
+    } catch (e) {
+      // DB query error, fallback to mockData
+    }
+
+    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : mockData.incomes;
+    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : mockData.expenses;
+
+    incomes = incomes.map(inc => ({
+      ...inc.toObject ? inc.toObject() : inc,
+      amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
+    }));
+
+    expenses = expenses.map(exp => ({
+      ...exp.toObject ? exp.toObject() : exp,
+      amount: exp.amount < 1000 ? exp.amount * 100 : exp.amount
+    }));
+
+    const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
     const netSavings = totalIncome - totalExpense;
 
     const categoryMap = {};
-    mockData.expenses.forEach(exp => {
-      categoryMap[exp.category] = (categoryMap[exp.category] || 0) + exp.amount;
+    expenses.forEach(exp => {
+      const cat = exp.category || 'Other';
+      categoryMap[cat] = (categoryMap[cat] || 0) + exp.amount;
     });
 
     const spendBreakdown = Object.keys(categoryMap).map(cat => ({

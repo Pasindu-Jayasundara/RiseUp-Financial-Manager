@@ -7,14 +7,29 @@ const { mockData } = require('../services/mockDataStore');
 const getFinancialSummary = async (req, res) => {
   try {
     const tenantId = req.tenantId;
-    const incomes = await Income.find({ tenantId });
-    const expenses = await Expense.find({ tenantId });
+    let dbIncomes = await Income.find({ tenantId });
+    let dbExpenses = await Expense.find({ tenantId });
+
+    let incomes = (dbIncomes && dbIncomes.length > 0) ? dbIncomes : mockData.incomes;
+    let expenses = (dbExpenses && dbExpenses.length > 0) ? dbExpenses : mockData.expenses;
+
+    // Normalize any legacy unscaled amounts (< 1000 => * 100 for LKR currency consistency)
+    incomes = incomes.map(inc => ({
+      ...inc.toObject ? inc.toObject() : inc,
+      amount: inc.amount < 1000 ? inc.amount * 100 : inc.amount
+    }));
+
+    expenses = expenses.map(exp => ({
+      ...exp.toObject ? exp.toObject() : exp,
+      amount: exp.amount < 1000 ? exp.amount * 100 : exp.amount
+    }));
 
     const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
     const netCashflow = totalIncome - totalExpense;
 
     let budget = await BudgetAllocation.findOne({ tenantId });
+    if (!budget) budget = mockData.budget;
 
     res.json({
       totalIncome,
@@ -25,7 +40,6 @@ const getFinancialSummary = async (req, res) => {
       budget
     });
   } catch (error) {
-    // Return mock data fallback seamlessly
     const totalIncome = mockData.incomes.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpense = mockData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
     res.json({
@@ -67,6 +81,7 @@ const addIncome = async (req, res) => {
 const deleteIncome = async (req, res) => {
   try {
     await Income.findOneAndDelete({ _id: req.params.id });
+    mockData.incomes = mockData.incomes.filter(i => i._id !== req.params.id);
     res.json({ message: 'Income deleted' });
   } catch (error) {
     mockData.incomes = mockData.incomes.filter(i => i._id !== req.params.id);
@@ -101,6 +116,7 @@ const addExpense = async (req, res) => {
 const deleteExpense = async (req, res) => {
   try {
     await Expense.findOneAndDelete({ _id: req.params.id });
+    mockData.expenses = mockData.expenses.filter(e => e._id !== req.params.id);
     res.json({ message: 'Expense deleted' });
   } catch (error) {
     mockData.expenses = mockData.expenses.filter(e => e._id !== req.params.id);
