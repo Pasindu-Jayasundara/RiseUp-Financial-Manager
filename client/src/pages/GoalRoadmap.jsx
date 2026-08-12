@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Target, Briefcase, CheckSquare, Square, ShieldCheck, Sparkles, Award } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Target, Briefcase, CheckSquare, Square, ShieldCheck, Sparkles, Award, Check } from 'lucide-react';
 
 export default function GoalRoadmap({ goalData, onToggleTask, onUpdateGoal }) {
   const goal = goalData?.goal || {
@@ -13,19 +13,35 @@ export default function GoalRoadmap({ goalData, onToggleTask, onUpdateGoal }) {
   const [targetInc, setTargetInc] = useState(goal.targetIncome);
   const [newSkill, setNewSkill] = useState('');
   const [declaredSkills, setDeclaredSkills] = useState(goal.declaredSkills || []);
+  const [goalSuccessMsg, setGoalSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (goalData?.goal?.targetIncome) {
+      setTargetInc(goalData.goal.targetIncome);
+    }
+    if (goalData?.goal?.declaredSkills) {
+      setDeclaredSkills(goalData.goal.declaredSkills);
+    }
+  }, [goalData]);
+
+  const handleGoalSubmit = async () => {
+    await onUpdateGoal({ targetIncome: Number(targetInc), declaredSkills });
+    setGoalSuccessMsg(`Target goal updated to Rs. ${Number(targetInc).toLocaleString()}!`);
+    setTimeout(() => setGoalSuccessMsg(''), 4000);
+  };
 
   const handleAddSkill = () => {
     if (!newSkill.trim() || declaredSkills.includes(newSkill.trim())) return;
     const updated = [...declaredSkills, newSkill.trim()];
     setDeclaredSkills(updated);
     setNewSkill('');
-    onUpdateGoal({ targetIncome: targetInc, declaredSkills: updated });
+    onUpdateGoal({ targetIncome: Number(targetInc), declaredSkills: updated });
   };
 
   const handleRemoveSkill = (skillToRemove) => {
     const updated = declaredSkills.filter(s => s !== skillToRemove);
     setDeclaredSkills(updated);
-    onUpdateGoal({ targetIncome: targetInc, declaredSkills: updated });
+    onUpdateGoal({ targetIncome: Number(targetInc), declaredSkills: updated });
   };
 
   return (
@@ -58,14 +74,29 @@ export default function GoalRoadmap({ goalData, onToggleTask, onUpdateGoal }) {
             </div>
             <button
               className="btn-primary"
-              onClick={() => onUpdateGoal({ targetIncome: targetInc, declaredSkills })}
+              onClick={handleGoalSubmit}
               id="save-goal-btn"
             >
               Update Goal
             </button>
           </div>
+
+          {goalSuccessMsg && (
+            <div style={{
+              color: 'var(--accent-emerald)',
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '10px',
+              fontWeight: 600
+            }}>
+              <Check size={16} /> {goalSuccessMsg}
+            </div>
+          )}
+
           <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            System automatically adjusts 12-month milestone tasks based on your income target delta.
+            System automatically adjusts Dashboard motivation progress, matched job salaries, and 12-month roadmap targets.
           </div>
         </div>
 
