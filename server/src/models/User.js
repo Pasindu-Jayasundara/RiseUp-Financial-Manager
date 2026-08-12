@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
   age: { type: Number, default: 32 },
   ageBand: { type: String, default: '30-49' },
   medicalConditions: [{ type: String }],
+  isFirstLogin: { type: Boolean, default: true },
   defaultTenant: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant' },
   tenants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tenant' }],
   createdAt: { type: Date, default: Date.now }

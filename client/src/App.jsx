@@ -7,10 +7,25 @@ import GoalRoadmap from './pages/GoalRoadmap';
 import AnalyticsForecasting from './pages/AnalyticsForecasting';
 import BlockchainLedger from './pages/BlockchainLedger';
 import PersonalizationProfile from './pages/PersonalizationProfile';
+import LoginPage from './pages/LoginPage';
+import OnboardingModal from './components/OnboardingModal';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('riseup_token');
+  });
+
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [user, setUser] = useState({ name: 'Alex Rivera', age: 42, medicalConditions: ['chronic_condition_high_cost'] });
+  const [user, setUser] = useState({
+    _id: 'user_alex_1',
+    name: 'Alex Rivera',
+    email: 'alex@riseup.io',
+    age: 42,
+    ageBand: '30-49',
+    medicalConditions: ['chronic_condition_high_cost'],
+    isFirstLogin: false
+  });
+
   const [tenants, setTenants] = useState([
     { _id: 'tenant_personal_1', name: 'Personal Workspace', type: 'personal' },
     { _id: 'tenant_household_2', name: 'Rivera Household', type: 'household' }
@@ -27,8 +42,10 @@ export default function App() {
 
   // Resilient multi-port API fetch helper
   const apiFetch = async (endpoint, options = {}) => {
+    const token = localStorage.getItem('riseup_token');
     const headers = {
       'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : '',
       'x-tenant-id': activeTenantId || '',
       ...(options.headers || {})
     };
@@ -81,10 +98,38 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadAllData();
-  }, [activeTenantId]);
+    if (isAuthenticated) {
+      loadAllData();
+    }
+  }, [isAuthenticated, activeTenantId]);
 
-  // Handlers
+  // Authentication Handlers
+  const handleLoginSuccess = (loggedInUser) => {
+    setUser(loggedInUser);
+    setIsAuthenticated(true);
+    loadAllData();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('riseup_token');
+    setIsAuthenticated(false);
+  };
+
+  const handleCompleteOnboarding = async (onboardingData) => {
+    const res = await apiFetch('/api/auth/onboarding', {
+      method: 'POST',
+      body: JSON.stringify(onboardingData)
+    });
+
+    if (res && res.user) {
+      setUser(res.user);
+    } else {
+      setUser(prev => ({ ...prev, isFirstLogin: false, age: onboardingData.age, medicalConditions: onboardingData.medicalConditions }));
+    }
+    await loadAllData();
+  };
+
+  // Finance & Goal Handlers
   const handleAddIncome = async (inc) => {
     await apiFetch('/api/finance/income', { method: 'POST', body: JSON.stringify(inc) });
     loadAllData();
@@ -146,8 +191,18 @@ export default function App() {
     return aiRes;
   };
 
+  // If user is not authenticated, show Login / Register Page
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="app-container">
+      {/* First-Time Login Onboarding Setup Wizard */}
+      {user?.isFirstLogin && (
+        <OnboardingModal user={user} onCompleteOnboarding={handleCompleteOnboarding} />
+      )}
+
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="main-content">
@@ -157,6 +212,7 @@ export default function App() {
           onSelectTenant={(id) => setActiveTenantId(id)}
           user={user}
           notifications={notifications?.notifications}
+          onLogout={handleLogout}
         />
 
         {activeTab === 'dashboard' && (

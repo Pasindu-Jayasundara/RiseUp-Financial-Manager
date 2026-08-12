@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Building2, Bell, Shield, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Building2, Bell, LogOut, ChevronDown, CheckCircle2 } from 'lucide-react';
 
-export default function Navbar({ tenants, activeTenantId, onSelectTenant, user, notifications }) {
+export default function Navbar({ tenants, activeTenantId, onSelectTenant, user, notifications, onLogout }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const activeTenant = tenants.find(t => t._id === activeTenantId) || tenants[0] || { name: 'Personal Workspace' };
 
@@ -137,7 +137,7 @@ export default function Navbar({ tenants, activeTenantId, onSelectTenant, user, 
           padding: '6px 14px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: '12px'
         }}>
           <div style={{
             width: '34px',
@@ -162,10 +162,36 @@ export default function Navbar({ tenants, activeTenantId, onSelectTenant, user, 
                 Age {user?.age || 42}
               </span>
               <span className="badge badge-purple" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
-                Health Risk Tier
+                Health Buffer Policy
               </span>
             </div>
           </div>
+
+          {/* Log Out Button */}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              title="Log Out"
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#64748b',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginLeft: '6px',
+                transition: 'all 0.2s ease'
+              }}
+              id="logout-btn"
+            >
+              <LogOut size={14} /> Log Out
+            </button>
+          )}
         </div>
       </div>
     </header>
