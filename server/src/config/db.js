@@ -7,11 +7,18 @@ const connectDB = async () => {
     let uri = process.env.MONGODB_URI || process.env.MONGO_URI;
 
     if (!uri && process.env.MONGODB_USERNAME && process.env.MONGODB_PASSWORD) {
-      uri = `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@cluster0.i3eqgad.mongodb.net/riseup_db?retryWrites=true&w=majority`;
+      const user = encodeURIComponent(process.env.MONGODB_USERNAME);
+      const pass = encodeURIComponent(process.env.MONGODB_PASSWORD);
+      uri = `mongodb+srv://${user}:${pass}@cluster0.i3eqgad.mongodb.net/riseup_db?retryWrites=true&w=majority`;
     }
 
     if (!uri) {
       uri = 'mongodb://127.0.0.1:27017/riseup_financial_manager';
+    }
+
+    // Auto-fix accidental double '@@' in connection string (e.g. password ending with '@')
+    if (uri && uri.includes('@@')) {
+      uri = uri.replace('@@', '%40@');
     }
 
     console.log(`Connecting to MongoDB Atlas at: ${uri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}...`);
