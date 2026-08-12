@@ -1,7 +1,9 @@
-import React from 'react';
-import { TrendingUp, PieChart, Sparkles, AlertCircle, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, PieChart, Sparkles, AlertCircle, HelpCircle, Bot, RefreshCw, CheckCircle2, Zap } from 'lucide-react';
 
-export default function AnalyticsForecasting({ analyticsData }) {
+export default function AnalyticsForecasting({ analyticsData, aiAnalysis, onRefreshAI }) {
+  const [loadingAI, setLoadingAI] = useState(false);
+
   const breakdown = analyticsData?.spendBreakdown || [
     { category: 'Housing', amount: 180000, percentage: 53 },
     { category: 'Healthcare', amount: 45000, percentage: 13 },
@@ -27,13 +29,107 @@ export default function AnalyticsForecasting({ analyticsData }) {
     ]
   };
 
+  const handleRunAI = async () => {
+    setLoadingAI(true);
+    if (onRefreshAI) await onRefreshAI();
+    setLoadingAI(false);
+  };
+
+  const aiReport = aiAnalysis || {
+    isLiveAI: false,
+    provider: 'Google Gemini 1.5 Flash (Add GEMINI_API_KEY to server/.env to activate live API)',
+    aiOverview: 'Your net monthly savings rate offers strong leverage to achieve your career target goal.',
+    actionableRecommendations: [
+      'Optimize daily housing and transport budget by 5-10%.',
+      'Leverage active skills to apply for Lead Financial Strategist roles.',
+      'Maintain health buffer reserve for emergency protection.'
+    ],
+    riskMitigationNote: 'Health risk policy active: maintain dedicated reserve buffer.',
+    careerStrategy: 'Focus on enterprise certifications to bridge target salary gap.'
+  };
+
   return (
     <div>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '1.6rem', color: 'var(--text-primary)', marginBottom: '6px' }}>Analytics & Predictive Forecasting</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>
-          ML-driven financial position projection and deterministic spend breakdowns.
+          ML-driven financial position projection, deterministic spend breakdowns, and external AI analysis.
         </p>
+      </div>
+
+      {/* External AI Financial & Strategy Advisor Card */}
+      <div className="glass-panel glass-panel-glow" style={{ padding: '24px', marginBottom: '28px', border: '1px solid rgba(124, 58, 237, 0.25)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Bot size={24} color="var(--accent-purple)" />
+            <div>
+              <h3 style={{ fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 700 }}>
+                External AI Strategy & Advisory Engine
+              </h3>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Powered by {aiReport.provider}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className={`badge ${aiReport.isLiveAI ? 'badge-emerald' : 'badge-purple'}`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Zap size={14} /> {aiReport.isLiveAI ? 'Live Gemini AI Connected' : 'AI Analysis Ready'}
+            </span>
+            <button className="btn-primary" onClick={handleRunAI} disabled={loadingAI} id="run-ai-analysis-btn">
+              <RefreshCw size={16} className={loadingAI ? 'spin' : ''} />
+              {loadingAI ? 'Running AI...' : 'Re-Run AI Analysis'}
+            </button>
+          </div>
+        </div>
+
+        {/* Executive Overview */}
+        <div style={{ background: '#ffffff', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--bg-card-border)', marginBottom: '18px' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.05em' }}>
+            AI Executive Assessment
+          </div>
+          <p style={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.5, fontWeight: 500 }}>
+            {aiReport.aiOverview}
+          </p>
+        </div>
+
+        {/* 3 Column AI Insights Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+          {/* Recommendations */}
+          <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid var(--bg-card-border)' }}>
+            <h4 style={{ fontSize: '0.88rem', color: 'var(--accent-cyan)', fontWeight: 700, marginBottom: '10px' }}>
+              Actionable AI Recommendations
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {(aiReport.actionableRecommendations || []).map((rec, rIdx) => (
+                <div key={rIdx} style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
+                  <CheckCircle2 size={16} color="var(--accent-emerald)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span>{rec}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Risk Mitigation */}
+          <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid var(--bg-card-border)' }}>
+            <h4 style={{ fontSize: '0.88rem', color: 'var(--accent-rose)', fontWeight: 700, marginBottom: '10px' }}>
+              Risk Mitigation & Health Strategy
+            </h4>
+            <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              {aiReport.riskMitigationNote}
+            </p>
+          </div>
+
+          {/* Career Strategy */}
+          <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid var(--bg-card-border)' }}>
+            <h4 style={{ fontSize: '0.88rem', color: 'var(--accent-purple)', fontWeight: 700, marginBottom: '10px' }}>
+              Skill & Career Acceleration
+            </h4>
+            <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              {aiReport.careerStrategy}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Spend Breakdown & ML Model Summary Row */}

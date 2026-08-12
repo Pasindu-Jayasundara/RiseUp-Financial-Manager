@@ -1,5 +1,6 @@
 const { generate12MonthForecast } = require('../services/forecastingEngine');
 const { mockData } = require('../services/mockDataStore');
+const { generateAIAnalysis } = require('../services/aiAdvisorService');
 
 const getAnalyticsAndForecast = async (req, res) => {
   try {
@@ -44,4 +45,37 @@ const getAnalyticsAndForecast = async (req, res) => {
   }
 };
 
-module.exports = { getAnalyticsAndForecast };
+const getAIAnalysisReport = async (req, res) => {
+  try {
+    const totalIncome = mockData.incomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalExpense = mockData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const netSavings = totalIncome - totalExpense;
+
+    const categoryMap = {};
+    mockData.expenses.forEach(exp => {
+      categoryMap[exp.category] = (categoryMap[exp.category] || 0) + exp.amount;
+    });
+
+    const spendBreakdown = Object.keys(categoryMap).map(cat => ({
+      category: cat,
+      amount: categoryMap[cat],
+      percentage: totalExpense > 0 ? Math.round((categoryMap[cat] / totalExpense) * 100) : 0
+    }));
+
+    const aiAnalysis = await generateAIAnalysis({
+      totalIncome,
+      totalExpense,
+      netSavings,
+      targetIncomeGoal: mockData.goal?.targetIncome || 850000,
+      declaredSkills: mockData.goal?.declaredSkills || [],
+      user: mockData.user || {},
+      spendBreakdown
+    });
+
+    res.json(aiAnalysis);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getAnalyticsAndForecast, getAIAnalysisReport };

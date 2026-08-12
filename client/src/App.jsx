@@ -21,6 +21,7 @@ export default function App() {
   const [financeData, setFinanceData] = useState(null);
   const [goalData, setGoalData] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
   const [notifications, setNotifications] = useState(null);
   const [ledgerRecords, setLedgerRecords] = useState([]);
 
@@ -68,6 +69,9 @@ export default function App() {
 
     const analytics = await apiFetch('/api/analytics/forecast');
     if (analytics) setAnalyticsData(analytics);
+
+    const aiRes = await apiFetch('/api/analytics/ai-advisory');
+    if (aiRes) setAiAnalysis(aiRes);
 
     const notifs = await apiFetch('/api/notifications');
     if (notifs) setNotifications(notifs);
@@ -136,6 +140,12 @@ export default function App() {
     loadAllData();
   };
 
+  const handleRefreshAI = async () => {
+    const aiRes = await apiFetch('/api/analytics/ai-advisory');
+    if (aiRes) setAiAnalysis(aiRes);
+    return aiRes;
+  };
+
   return (
     <div className="app-container">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -179,7 +189,11 @@ export default function App() {
         )}
 
         {activeTab === 'analytics' && (
-          <AnalyticsForecasting analyticsData={analyticsData} />
+          <AnalyticsForecasting
+            analyticsData={analyticsData}
+            aiAnalysis={aiAnalysis}
+            onRefreshAI={handleRefreshAI}
+          />
         )}
 
         {activeTab === 'blockchain' && (
