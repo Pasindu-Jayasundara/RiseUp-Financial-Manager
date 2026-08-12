@@ -1,0 +1,4 @@
+2. A feature where blockchain earns its place, tied to your core purpose
+Blockchain's actual value is decentralized trust between parties who don't trust the same central database — not just "immutable log." Your app already has two things worth proving to someone outside the app: skills/roadmap completion (for job-seeking) and consistent savings/financial discipline (useful for lenders). So:
+
+Verifiable Skill & Financial-Discipline Credentials — when a user completes a roadmap milestone, verified skill, or a savings-consistency streak, the platform issues a signed Verifiable Credential (W3C VC standard), anchored via the batched Merkle-root method above. The user holds these in an in-app credential wallet and can selectively share one with an employer or lender, who verifies it cryptographically on-chain — without needing your database, and without the user exposing their full financial history.
