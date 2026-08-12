@@ -109,5 +109,6 @@ const toggleMilestoneTask = async (req, res) => {
 module.exports = {
   getGoalAndRoadmap,
   updateGoalSkills,
-  toggleMilestoneTask
+  toggleMilestoneTask,
+  toggleTaskCompletion: toggleMilestoneTask
 };

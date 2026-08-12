@@ -4,7 +4,6 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const { seedDemoDataIfEmpty } = require('./controllers/authController');
 
 const app = express();
 app.use(cors());
@@ -29,12 +28,8 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(async (connected) => {
-  if (connected) {
-    await seedDemoDataIfEmpty();
-  }
-}).catch(err => {
-  console.log('Skipping MongoDB connection init:', err.message);
+connectDB().catch(err => {
+  console.log('MongoDB connection notice:', err.message);
 });
 
 const startServer = (port) => {
