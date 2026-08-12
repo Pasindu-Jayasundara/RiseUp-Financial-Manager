@@ -1,4 +1,12 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+// Set public DNS servers to resolve MongoDB Atlas SRV records cleanly on Windows/ISP networks
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {
+  // Ignore if environment overrides DNS
+}
 
 let isConnected = false;
 
