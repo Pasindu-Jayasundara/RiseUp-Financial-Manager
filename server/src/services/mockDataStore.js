@@ -1,5 +1,5 @@
 /**
- * In-Memory Mock Store Fallback for offline development
+ * In-Memory Mock Store Fallback for offline development (LKR Currency)
  */
 let mockData = {
   user: {
@@ -15,15 +15,15 @@ let mockData = {
     { _id: 't_household', name: 'Rivera Household', type: 'household' }
   ],
   incomes: [
-    { _id: 'inc_1', tenantId: 't_personal', source: 'Senior Consultant Salary', amount: 4800, isFixed: true },
-    { _id: 'inc_2', tenantId: 't_personal', source: 'Freelance Advisory', amount: 1200, isFixed: false }
+    { _id: 'inc_1', tenantId: 't_personal', source: 'Senior Consultant Salary', amount: 480000, isFixed: true },
+    { _id: 'inc_2', tenantId: 't_personal', source: 'Freelance Advisory', amount: 120000, isFixed: false }
   ],
   expenses: [
-    { _id: 'exp_1', tenantId: 't_personal', title: 'Apartment Rent', amount: 1800, category: 'Housing' },
-    { _id: 'exp_2', tenantId: 't_personal', title: 'Health & Prescriptions', amount: 450, category: 'Healthcare' },
-    { _id: 'exp_3', tenantId: 't_personal', title: 'Groceries & Dining', amount: 650, category: 'Food & Dining' },
-    { _id: 'exp_4', tenantId: 't_personal', title: 'Car Loan & Fuel', amount: 400, category: 'Transport' },
-    { _id: 'exp_5', tenantId: 't_personal', title: 'Hobbies & Streaming', amount: 120, category: 'Hobbies & Leisure' }
+    { _id: 'exp_1', tenantId: 't_personal', title: 'Apartment Rent', amount: 180000, category: 'Housing' },
+    { _id: 'exp_2', tenantId: 't_personal', title: 'Health & Prescriptions', amount: 45000, category: 'Healthcare' },
+    { _id: 'exp_3', tenantId: 't_personal', title: 'Groceries & Dining', amount: 65000, category: 'Food & Dining' },
+    { _id: 'exp_4', tenantId: 't_personal', title: 'Car Loan & Fuel', amount: 40000, category: 'Transport' },
+    { _id: 'exp_5', tenantId: 't_personal', title: 'Hobbies & Streaming', amount: 12000, category: 'Hobbies & Leisure' }
   ],
   budget: {
     tenantId: 't_personal',
@@ -41,11 +41,11 @@ let mockData = {
   },
   goal: {
     tenantId: 't_personal',
-    targetIncome: 8500,
+    targetIncome: 850000,
     declaredSkills: ['Financial Modeling', 'Data Analytics', 'Project Management'],
     matchedJobs: [
-      { role: 'Lead Financial Strategist', industry: 'FinTech', estimatedSalary: 8800, matchPercentage: 75, gapSkills: ['Risk Management', 'Python'] },
-      { role: 'Senior Analytics Manager', industry: 'Enterprise Software', estimatedSalary: 9200, matchPercentage: 80, gapSkills: ['SQL', 'Executive Reporting'] }
+      { role: 'Lead Financial Strategist', industry: 'FinTech', estimatedSalary: 880000, matchPercentage: 75, gapSkills: ['Risk Management', 'Python'] },
+      { role: 'Senior Analytics Manager', industry: 'Enterprise Software', estimatedSalary: 920000, matchPercentage: 80, gapSkills: ['SQL', 'Executive Reporting'] }
     ]
   },
   roadmaps: [
@@ -54,14 +54,14 @@ let mockData = {
       tenantId: 't_personal',
       month: 1,
       milestoneTitle: 'Month 1: Risk Management & Advanced Modeling Certification',
-      targetIncomeIncrease: 500,
+      targetIncomeIncrease: 50000,
       isCompleted: true,
       blockchainVerified: true,
       blockchainTxHash: '0x7a8f9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a',
       tasks: [
         { _id: 'task_1', text: 'Complete Enterprise Risk Management Course', category: 'Skill Acquisition', completed: true },
         { _id: 'task_2', text: 'Build Automated Healthcare Buffer Savings Rule', category: 'Health Buffer', completed: true },
-        { _id: 'task_3', text: 'Set aside $1,200 in High-Yield Savings Account', category: 'Savings Target', completed: true }
+        { _id: 'task_3', text: 'Set aside LKR 120,000 in High-Yield Savings Account', category: 'Savings Target', completed: true }
       ]
     },
     {
@@ -69,7 +69,7 @@ let mockData = {
       tenantId: 't_personal',
       month: 2,
       milestoneTitle: 'Month 2: Python Data Analytics & FinTech Application Prep',
-      targetIncomeIncrease: 1000,
+      targetIncomeIncrease: 100000,
       isCompleted: false,
       blockchainVerified: false,
       tasks: [
@@ -82,7 +82,7 @@ let mockData = {
   notifications: {
     dailyMotivation: {
       completionPct: 35,
-      message: 'Awesome work! You are 35% closer to your $8,500 monthly target goal. Complete Month 2 Python module!',
+      message: 'Awesome work! You are 35% closer to your LKR 850,000 monthly target goal. Complete Month 2 Python module!',
       suggestedNextAction: 'Complete your Python for Finance module to trigger your next milestone validation.'
     },
     notifications: [

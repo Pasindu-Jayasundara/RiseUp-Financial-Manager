@@ -3,7 +3,7 @@ import { Target, Briefcase, CheckSquare, Square, ShieldCheck, Sparkles, Award } 
 
 export default function GoalRoadmap({ goalData, onToggleTask, onUpdateGoal }) {
   const goal = goalData?.goal || {
-    targetIncome: 8500,
+    targetIncome: 850000,
     declaredSkills: ['React', 'Node.js', 'Financial Modeling'],
     matchedJobs: []
   };
@@ -42,15 +42,15 @@ export default function GoalRoadmap({ goalData, onToggleTask, onUpdateGoal }) {
         {/* Goal Card */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Target size={20} color="var(--accent-cyan)" /> Target Monthly Income Goal
+            <Target size={20} color="var(--accent-cyan)" /> Target Monthly Income Goal (LKR)
           </h3>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <span style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>$</span>
+              <span style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' }}>Rs.</span>
               <input
                 type="number"
                 className="form-input"
-                style={{ paddingLeft: '28px', fontSize: '1.2rem', fontWeight: 700 }}
+                style={{ paddingLeft: '40px', fontSize: '1.2rem', fontWeight: 700 }}
                 value={targetInc}
                 onChange={(e) => setTargetInc(e.target.value)}
                 id="target-income-input"
@@ -124,7 +124,7 @@ export default function GoalRoadmap({ goalData, onToggleTask, onUpdateGoal }) {
               </div>
 
               <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-cyan)', marginBottom: '12px' }}>
-                Est. ${job.estimatedSalary.toLocaleString()} / mo
+                Est. Rs. {job.estimatedSalary.toLocaleString()} / mo
               </div>
 
               {job.gapSkills && job.gapSkills.length > 0 && (
@@ -166,7 +166,7 @@ export default function GoalRoadmap({ goalData, onToggleTask, onUpdateGoal }) {
                 <div>
                   <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>{rm.milestoneTitle}</h4>
                   <span style={{ fontSize: '0.8rem', color: 'var(--accent-emerald)', fontWeight: 600 }}>
-                    Target Income Boost: +${rm.targetIncomeIncrease} / mo
+                    Target Income Boost: +Rs. {rm.targetIncomeIncrease.toLocaleString()} / mo
                   </span>
                 </div>
 

@@ -55,7 +55,7 @@ const generate12MonthForecast = ({
     `Roadmap Completion Pace: ${(roadmapCompletionRate * 100).toFixed(0)}% (+${(roadmapCompletionRate * 3.5).toFixed(1)}% monthly trajectory acceleration)`,
     `Active Skills Leveraged: ${skillCount} verified skills driving career progression`,
     `Current Net Savings Rate: ${(savingsRate * 100).toFixed(0)}% monthly reserve stability`,
-    `Projected 12-Month Position Range: $${projectedIncomeLow.toLocaleString()} - $${projectedIncomeHigh.toLocaleString()} / mo`
+    `Projected 12-Month Position Range: Rs. ${projectedIncomeLow.toLocaleString()} - Rs. ${projectedIncomeHigh.toLocaleString()} / mo`
   ];
 
   return {

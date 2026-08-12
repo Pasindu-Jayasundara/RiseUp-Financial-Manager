@@ -3,27 +3,27 @@ import { TrendingUp, PieChart, Sparkles, AlertCircle, HelpCircle } from 'lucide-
 
 export default function AnalyticsForecasting({ analyticsData }) {
   const breakdown = analyticsData?.spendBreakdown || [
-    { category: 'Housing', amount: 1800, percentage: 53 },
-    { category: 'Healthcare', amount: 450, percentage: 13 },
-    { category: 'Food & Dining', amount: 650, percentage: 19 },
-    { category: 'Transport', amount: 400, percentage: 12 },
-    { category: 'Hobbies & Leisure', amount: 120, percentage: 3 }
+    { category: 'Housing', amount: 180000, percentage: 53 },
+    { category: 'Healthcare', amount: 45000, percentage: 13 },
+    { category: 'Food & Dining', amount: 65000, percentage: 19 },
+    { category: 'Transport', amount: 40000, percentage: 12 },
+    { category: 'Hobbies & Leisure', amount: 12000, percentage: 3 }
   ];
 
   const forecast = analyticsData?.forecast || {
     confidenceScore: 85,
-    projected12MonthRange: { low: 6800, mid: 8200, high: 9400 },
+    projected12MonthRange: { low: 680000, mid: 820000, high: 940000 },
     explanationFactors: [
       "Roadmap Completion Pace: 75% (+3.5% monthly trajectory acceleration)",
       "Active Skills Leveraged: 3 verified skills driving career progression",
       "Current Net Savings Rate: 20% monthly reserve stability"
     ],
     forecastData: [
-      { month: 'M1', incomeMid: 6100, cumulativeSavingsMid: 800 },
-      { month: 'M3', incomeMid: 6500, cumulativeSavingsMid: 2600 },
-      { month: 'M6', incomeMid: 7200, cumulativeSavingsMid: 5900 },
-      { month: 'M9', incomeMid: 7800, cumulativeSavingsMid: 9800 },
-      { month: 'M12', incomeMid: 8500, cumulativeSavingsMid: 14200 }
+      { month: 'M1', incomeMid: 610000, cumulativeSavingsMid: 80000 },
+      { month: 'M3', incomeMid: 650000, cumulativeSavingsMid: 260000 },
+      { month: 'M6', incomeMid: 720000, cumulativeSavingsMid: 590000 },
+      { month: 'M9', incomeMid: 780000, cumulativeSavingsMid: 980000 },
+      { month: 'M12', incomeMid: 850000, cumulativeSavingsMid: 1420000 }
     ]
   };
 
@@ -50,7 +50,7 @@ export default function AnalyticsForecasting({ analyticsData }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
                   <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.category}</span>
                   <span style={{ color: 'var(--text-secondary)' }}>
-                    ${item.amount.toLocaleString()} ({item.percentage}%)
+                    Rs. {item.amount.toLocaleString()} ({item.percentage}%)
                   </span>
                 </div>
                 <div className="progress-bar-bg">
@@ -81,10 +81,10 @@ export default function AnalyticsForecasting({ analyticsData }) {
               Projected 12-Month Monthly Income Range
             </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-emerald)', margin: '4px 0' }}>
-              ${forecast.projected12MonthRange.low.toLocaleString()} &ndash; ${forecast.projected12MonthRange.high.toLocaleString()} / mo
+              Rs. {forecast.projected12MonthRange.low.toLocaleString()} &ndash; Rs. {forecast.projected12MonthRange.high.toLocaleString()} / mo
             </div>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              Midpoint Expected: ${forecast.projected12MonthRange.mid.toLocaleString()} / month
+              Midpoint Expected: Rs. {forecast.projected12MonthRange.mid.toLocaleString()} / month
             </div>
           </div>
 
@@ -111,11 +111,11 @@ export default function AnalyticsForecasting({ analyticsData }) {
         {/* Trajectory Bar Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${forecast.forecastData.length}, 1fr)`, gap: '16px', alignItems: 'end', height: '220px', padding: '16px 0', borderBottom: '1px solid var(--bg-card-border)' }}>
           {forecast.forecastData.map((d, idx) => {
-            const heightPct = Math.min(100, Math.max(20, (d.incomeMid / 10000) * 100));
+            const heightPct = Math.min(100, Math.max(20, (d.incomeMid / 1000000) * 100));
             return (
               <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-cyan)', marginBottom: '6px' }}>
-                  ${(d.incomeMid / 1000).toFixed(1)}k
+                  Rs. {(d.incomeMid / 1000).toFixed(0)}k
                 </div>
                 <div style={{
                   width: '80%',
