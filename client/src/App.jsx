@@ -217,6 +217,7 @@ export default function App() {
 
         {activeTab === 'dashboard' && (
           <Dashboard
+            user={user}
             financeData={financeData}
             goalData={goalData}
             analyticsData={analyticsData}
