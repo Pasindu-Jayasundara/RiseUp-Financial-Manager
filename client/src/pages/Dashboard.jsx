@@ -152,7 +152,7 @@ export default function Dashboard({ financeData, goalData, analyticsData, notifi
 
             <div style={{ background: 'rgba(5, 150, 105, 0.08)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(5, 150, 105, 0.18)' }}>
               <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Daily / Health</div>
-              <div style={{ fontSize: '1.2rem', fontWeight 800, color: '#059669', margin: '4px 0' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#059669', margin: '4px 0' }}>
                 {budget.dailyExpensesPct}%
               </div>
               <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 500 }}>
@@ -162,7 +162,7 @@ export default function Dashboard({ financeData, goalData, analyticsData, notifi
 
             <div style={{ background: 'rgba(217, 119, 6, 0.08)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(217, 119, 6, 0.18)' }}>
               <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Hobbies</div>
-              <div style={{ fontSize: '1.2rem', fontWeight 800, color: '#d97706', margin: '4px 0' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#d97706', margin: '4px 0' }}>
                 {budget.hobbiesPct}%
               </div>
               <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 500 }}>
